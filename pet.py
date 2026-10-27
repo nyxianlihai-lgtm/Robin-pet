@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QMenu, QWidget
 
 from config import APP_TITLE, ROOT
 from motion import MotionLibrary, MotionPlayer
+from ui_assets import placeholder
 
 
 class Pet(QWidget):
@@ -24,9 +25,7 @@ class Pet(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
-        self.source = QPixmap(str(ROOT / "assets" / "robin.png"))
-        if self.source.isNull():
-            raise RuntimeError("找不到角色素材 assets/robin.png。")
+        self.source = placeholder()
         self.motion_library = MotionLibrary()
         self.motion = MotionPlayer(self.motion_library)
         self.settings = settings.copy()
@@ -225,7 +224,7 @@ class Pet(QWidget):
         menu = QMenu(self)
         menu.setStyleSheet("QMenu {background:#fcfaff;color:#46385e;padding:7px;border:1px solid #e6dff1;}"
                            "QMenu::item {padding:8px 24px;} QMenu::item:selected {background:#eee7fa;}")
-        menu.addAction("和知更鸟聊聊", self.open_panel.emit)
+        menu.addAction("和 Robin 聊聊", self.open_panel.emit)
         menu.addAction("摸摸头 ♡", lambda checked=False: self.interact())
         menu.addAction("继续播放" if self.asleep else "暂停待机", self.toggle_sleep)
         preview = menu.addMenu("动作预览")

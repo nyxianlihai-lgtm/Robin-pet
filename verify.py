@@ -134,10 +134,14 @@ def main():
             before = companion.pet.x()
             QTest.qWait(200)
             assert companion.pet.x() == before
-            companion.pet.motion.current = "walk"
-            companion.pet.motion.elapsed = 0
-            QTest.qWait(200)
-            assert companion.pet.x() < before
+            if companion.pet.motion_library.available and 'walk' in companion.pet.motion_library.clips:
+                companion.pet.motion.current = "walk"
+                companion.pet.motion.elapsed = 0
+                QTest.qWait(200)
+                assert companion.pet.x() < before
+            else:
+                QTest.qWait(200)
+                assert companion.pet.x() == before
             companion.pet.settings["wander"] = False
             companion.pet.toggle_visible()
             assert not companion.pet.isVisible()

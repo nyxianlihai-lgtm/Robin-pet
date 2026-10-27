@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "fps": 24,
+  "canvas": [96, 96],
+  "frames": 2,
+  "pattern": "frames/frame_{index:04d}.png",
+  "anchor": [48, 90],
+  "bounds": [8, 8, 88, 90],
+  "clips": {
+    "idle": {"order": [0, 1], "next": "idle", "entry_frame": 0}
+  },
+  "note": "Format example only. Frames are not bundled. Generate your own pack into data/pet-assets."
+}

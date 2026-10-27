@@ -14,3 +14,29 @@ qa/
 
 # Superseded intermediate frames; the runtime loads PNG from this pack.
 assets/video2_hq/frames/*.webp
+
+# Private artwork and generated packs remain local.
+/参考视频1/
+/参考视频2/
+/参考图片/
+/角色方案/
+/动作制作/
+/assets/*
+!/assets/manifest.example.json
+!/assets/demo.svg
+/user-assets/
+
+# Earlier experimental renderers and character-specific checks remain private.
+/motion_legacy.py
+/motion_player.py
+/motion_rig.py
+/rig.py
+/tween.py
+/preview_legacy.py
+/verify_motion_legacy.py
+/verify_rig.py
+/verify_tween.py
+/verify_video2.py
+/tools/prepare_idle_video.py
+/tools/render_video2_preview.py
+/tools/verify_video2_matte.py

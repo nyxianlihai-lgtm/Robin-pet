@@ -15,6 +15,7 @@ from panel import Panel
 from pet import Pet
 from security import protect, unprotect
 from services import ChatClient, Speaker, endpoint_url
+from ui_assets import app_icon
 
 
 class Companion(QObject):
@@ -53,7 +54,7 @@ class Companion(QObject):
         self.chat.busy_changed.connect(self.pet.set_thinking)
         self.speaker.failed.connect(self.report)
         if use_tray and QSystemTrayIcon.isSystemTrayAvailable():
-            self.tray = QSystemTrayIcon(QIcon(str(ROOT / "assets" / "robin.png")), self)
+            self.tray = QSystemTrayIcon(app_icon(), self)
             self.tray.setToolTip(APP_TITLE + " · 双击打开陪伴面板")
             menu = QMenu()
             menu.addAction("打开陪伴面板", self.show_panel)
@@ -77,7 +78,7 @@ class Companion(QObject):
         if warning:
             self.report(warning)
         if not self.pet.motion_library.available:
-            self.report("视频动作未加载，暂用原正面图。请检查 assets/video2_hq。")
+            self.report("当前显示通用占位图。可用 tools/prepare_video2.py 处理自备视频，生成 data/pet-assets。")
         app.aboutToQuit.connect(self.shutdown)
 
     def tray_activated(self, reason):
@@ -151,7 +152,7 @@ class Companion(QObject):
             return
         self.panel.add_message("user", text)
         self.panel.input.clear()
-        self.panel.status.setText("知更鸟正在听你说话…")
+        self.panel.status.setText("Robin 正在听你说话…")
         self.pet.say("让我想一想…", 65)
 
     def on_answer(self, answer):
@@ -219,7 +220,7 @@ def main():
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
     app.setFont(QFont("Microsoft YaHei UI", 10))
-    app.setWindowIcon(QIcon(str(ROOT / "assets" / "robin.png")))
+    app.setWindowIcon(app_icon())
     app.setQuitOnLastWindowClosed(False)
     name = "robin-pet-" + hashlib.sha256(str(ROOT).lower().encode()).hexdigest()[:16]
     socket = QLocalSocket()
@@ -231,7 +232,7 @@ def main():
         return 0
     server = QLocalServer()
     if not server.listen(name):
-        QMessageBox.warning(None, "知更鸟", "另一个桌宠实例正在启动，请稍后再试。")
+        QMessageBox.warning(None, APP_TITLE, "另一个桌宠实例正在启动，请稍后再试。")
         return 1
     companion = Companion(app)
 

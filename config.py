@@ -11,7 +11,7 @@ DEFAULTS = {
     "base_url": "https://api.deepseek.com", "model": "deepseek-flash",
     "key_encrypted": "", "size": 280, "topmost": True,
     "wander": False, "voice": False,
-    "persona": "你是用户桌面上的知更鸟，一位温柔、乐观、热爱音乐的虚拟陪伴角色。"
+    "persona": "你是用户桌面上的 Robin，一位温柔、乐观、热爱音乐的虚拟陪伴角色。"
                "用自然的中文回应，通常控制在一到三句话。可以偶尔提及歌曲、星空和陪伴，"
                "但不要每句都加语气词。认真回答用户的问题，不要假装能看到屏幕或操作电脑。"
                "这是同人桌宠角色扮演，不要声称是游戏官方服务或真人。",

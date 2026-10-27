@@ -1,6 +1,7 @@
 """Play the actual keyed video frames. No rig, synthetic gestures, or flow."""
 import json
 import random
+import os
 from pathlib import Path
 
 from PySide6.QtCore import QRectF, Qt
@@ -13,7 +14,13 @@ class MotionLibrary:
     video_mode = True
 
     def __init__(self, directory=None):
-        self.directory = Path(directory) if directory else ROOT / "assets" / "video2_hq"
+        requested = directory if directory is not None else os.environ.get("ROBIN_PET_ASSETS")
+        self.directory = Path(requested) if requested is not None else ROOT / "data" / "pet-assets"
+        # Local private packs are preserved, but are never bundled or downloaded.
+        if requested is None and not (self.directory / "manifest.json").is_file():
+            private_legacy = ROOT / "assets" / "video2_hq"
+            if (private_legacy / "manifest.json").is_file():
+                self.directory = private_legacy
         self.available = False
         self.problem = ""
         self.interpolation_problem = ""
@@ -27,6 +34,11 @@ class MotionLibrary:
             self.fps = float(self.manifest["fps"])
             self.frame_count = int(self.manifest["frames"])
             self.clips = self.manifest.get("clips") or {"idle": {"order": self.manifest["order"], "next": "idle"}}
+            if self.manifest.get("revision") == "hq-enclosed-iris":
+                # Preserve entry timing for pre-existing private local packs.
+                for name, offset in (("wave", 44), ("turn", 20), ("walk_in", 20)):
+                    if name in self.clips:
+                        self.clips[name].setdefault("entry_frame", offset)
             self.order = self.clips["idle"]["order"]
             self.anchor = self.manifest["anchor"]
             self.bounds = self.manifest["bounds"]
@@ -51,7 +63,8 @@ class MotionLibrary:
         if not self.available:
             return
         rendered = []
-        scale = (height - 12) / (self.bounds[3] - self.bounds[1])
+        scale = min((height - 12) / (self.bounds[3] - self.bounds[1]),
+                    (height - 12) / (self.bounds[2] - self.bounds[0]))
         for path in self.paths:
             image = QImage(str(path))
             if image.isNull() or not image.hasAlphaChannel():
@@ -118,7 +131,7 @@ class MotionPlayer:
         self.current = target
         self.action = None if target == "idle" else target
         # These clips contain a long static lead-in. Enter just before motion.
-        entry = {"wave": 44, "turn": 20, "walk_in": 20}.get(target, 0)
+        entry = self.library.clips[target].get("entry_frame", 0)
         self.elapsed = min(entry / self.library.fps, self.library.duration(target) - 1 / self.library.fps)
         self.queued = None
         self.stop_requested = False
@@ -155,7 +168,8 @@ class MotionPlayer:
             self.transition_from = None
         remaining = max(0.0, dt)
         self.roam_after -= remaining
-        if roaming and self.roam_after <= 0 and self.current == "idle" and self.queued is None:
+        if (roaming and "walk_in" in self.library.clips and self.roam_after <= 0
+                and self.current == "idle" and self.queued is None):
             self.queued = "walk_in"
         while remaining > 1e-9:
             step = min(remaining, self.library.duration(self.current) - self.elapsed)

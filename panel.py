@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit, QPushButton, QScrollArea, QSlider, QTabWidget, QVBoxLayout, QWidget,
 )
 from config import APP_TITLE, ROOT
+from ui_assets import app_icon, placeholder
 
 STYLE = """
 QWidget {font-family:'Microsoft YaHei UI'; font-size:13px; color:#473d59;}
@@ -61,7 +62,7 @@ class Panel(QWidget):
         super().__init__()
         self.setObjectName("panel")
         self.setWindowTitle(APP_TITLE + " · 陪伴面板")
-        self.setWindowIcon(QIcon(str(ROOT / "assets" / "robin.png")))
+        self.setWindowIcon(app_icon())
         self.setStyleSheet(STYLE)
         self.setMinimumSize(440, 620)
         self.resize(480, 740)
@@ -73,7 +74,7 @@ class Panel(QWidget):
         eyebrow = QLabel(APP_TITLE)
         eyebrow.setObjectName("eyebrow")
         title_box.addWidget(eyebrow)
-        title = QLabel("知更鸟")
+        title = QLabel("Robin-pet")
         title.setObjectName("title")
         title_box.addWidget(title)
         subtitle = QLabel("陪你，把日子唱成歌。")
@@ -82,7 +83,7 @@ class Panel(QWidget):
         header.addLayout(title_box)
         header.addStretch()
         portrait = QLabel()
-        portrait.setPixmap(QPixmap(str(ROOT / "assets" / "robin.png")).scaledToHeight(88, Qt.TransformationMode.SmoothTransformation))
+        portrait.setPixmap(placeholder(88))
         header.addWidget(portrait)
         layout.addLayout(header)
         self.status = QLabel("填写 API Key 后，即可开始 AI 对话")
@@ -234,7 +235,7 @@ class Panel(QWidget):
         card.setObjectName("card")
         box = QVBoxLayout(card)
         box.setContentsMargins(13, 10, 13, 12)
-        name = QLabel({"user": "你", "assistant": "知更鸟", "system": "提示"}[role])
+        name = QLabel({"user": "你", "assistant": "Robin", "system": "提示"}[role])
         name.setObjectName("muted")
         box.addWidget(name)
         body = QLabel(text)

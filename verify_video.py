@@ -1,5 +1,5 @@
-"""Current supplied-video verification entry point."""
-from verify_video2 import main
+"""Verify public optional-asset playback with synthetic geometry."""
+from verify_assets import main
 
 if __name__ == '__main__':
     main()

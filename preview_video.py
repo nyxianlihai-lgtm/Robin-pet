@@ -18,7 +18,7 @@ from video_motion import MotionLibrary, MotionPlayer
 class Preview(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("知更鸟 · 学院装视频动作预览")
+        self.setWindowTitle("Robin-pet · 自备视频动作预览")
         self.setFixedSize(960, 520)
         self.library = MotionLibrary()
         if not self.library.available:
@@ -47,7 +47,7 @@ class Preview(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(QColor("#544169"))
         painter.setFont(QFont("Microsoft YaHei UI", 18, QFont.Weight.Bold))
-        painter.drawText(QRectF(0, 19, 960, 38), Qt.AlignmentFlag.AlignCenter, "知更鸟 · 学院装视频动作")
+        painter.drawText(QRectF(0, 19, 960, 38), Qt.AlignmentFlag.AlignCenter, "Robin-pet · 自备视频动作")
         painter.setFont(QFont("Microsoft YaHei UI", 10))
         painter.drawText(QRectF(0, 57, 960, 25), Qt.AlignmentFlag.AlignCenter,
                          "24 fps · " + self.player.label + " · 点击立即响应 · 同段返回含倒放")
@@ -64,7 +64,7 @@ class Preview(QWidget):
         painter.setPen(QColor("#9586a4"))
         painter.setFont(QFont("Microsoft YaHei UI", 9))
         painter.drawText(QRectF(0, 488, 960, 23), Qt.AlignmentFlag.AlignCenter,
-                         "1 待机   2 抬手招呼   3 转身   4 散步   空格 暂停   → 下一帧   来源：参考视频2")
+                         "1 待机   2 抬手招呼   3 转身   4 散步   空格 暂停   → 下一帧   用户自备素材")
 
     def paintEvent(self, event):
         painter = QPainter(self)
