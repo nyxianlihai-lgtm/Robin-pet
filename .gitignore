@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+data/
+build/
+dist/
+*.log
+qa/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Superseded intermediate frames; the runtime loads PNG from this pack.
+assets/video2_hq/frames/*.webp
