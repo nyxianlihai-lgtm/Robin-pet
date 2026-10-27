@@ -16,11 +16,11 @@ class MotionLibrary:
     def __init__(self, directory=None):
         requested = directory if directory is not None else os.environ.get("ROBIN_PET_ASSETS")
         self.directory = Path(requested) if requested is not None else ROOT / "data" / "pet-assets"
-        # Local private packs are preserved, but are never bundled or downloaded.
+        # Custom local packs take precedence over the bundled default character.
         if requested is None and not (self.directory / "manifest.json").is_file():
-            private_legacy = ROOT / "assets" / "video2_hq"
-            if (private_legacy / "manifest.json").is_file():
-                self.directory = private_legacy
+            bundled = ROOT / "assets" / "video2_hq"
+            if (bundled / "manifest.json").is_file():
+                self.directory = bundled
         self.available = False
         self.problem = ""
         self.interpolation_problem = ""

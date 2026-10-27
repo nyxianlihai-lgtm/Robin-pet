@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication, QMenu, QWidget
 
 from config import APP_TITLE, ROOT
 from motion import MotionLibrary, MotionPlayer
-from ui_assets import placeholder
+from ui_assets import character_image
 
 
 class Pet(QWidget):
@@ -25,7 +25,7 @@ class Pet(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
-        self.source = placeholder()
+        self.source = character_image()
         self.motion_library = MotionLibrary()
         self.motion = MotionPlayer(self.motion_library)
         self.settings = settings.copy()

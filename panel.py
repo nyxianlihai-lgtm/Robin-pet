@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit, QPushButton, QScrollArea, QSlider, QTabWidget, QVBoxLayout, QWidget,
 )
 from config import APP_TITLE, ROOT
-from ui_assets import app_icon, placeholder
+from ui_assets import app_icon, character_image
 
 STYLE = """
 QWidget {font-family:'Microsoft YaHei UI'; font-size:13px; color:#473d59;}
@@ -83,7 +83,7 @@ class Panel(QWidget):
         header.addLayout(title_box)
         header.addStretch()
         portrait = QLabel()
-        portrait.setPixmap(placeholder(88))
+        portrait.setPixmap(character_image().scaledToHeight(88, Qt.TransformationMode.SmoothTransformation))
         header.addWidget(portrait)
         layout.addLayout(header)
         self.status = QLabel("填写 API Key 后，即可开始 AI 对话")

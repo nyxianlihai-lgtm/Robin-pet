@@ -10,13 +10,13 @@
 
 Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼容接口聊天和 Windows 本地朗读。
 
-![通用几何示意图](assets/demo.svg)
+<img src="assets/video2_hq/frames/frame_0363.png" alt="随附同人角色示意" width="160">
 
-本仓库只分发通用程序、manifest 格式示例和一张 96px 的几何示意图，不分发角色图片、参考视频或完整动画帧包，也不提供这些素材的下载链接。没有自备帧包时显示通用占位图，聊天、拖动和设置仍可使用。
+本版本恢复随附人物图片和完整运行帧包：`assets/robin.png`、`assets/video2_hq/manifest.json` 及 484 张透明 PNG 帧。完整克隆或下载仓库后即可显示人物和播放动作，无需自己制作视频。参考视频、参考图片和创作过程归档不随仓库分发。
 
 ## 运行
 
-安装 Windows 版 Python 3.10 或以上，运行 `setup.bat` 安装依赖，再运行 `启动桌宠.bat`。首次启动会打开陪伴面板。关闭面板只隐藏窗口，退出请使用托盘或右键菜单。程序不会自动下载角色素材。
+安装 Windows 版 Python 3.10 或以上，完整克隆或下载仓库，运行 `setup.bat` 安装依赖，再运行 `启动桌宠.bat`。默认加载随附人物动画。首次启动会打开陪伴面板。关闭面板只隐藏窗口，退出请使用托盘或右键菜单。请勿只复制 Python 文件，需一并保留 `assets/`。这是 Windows 桌面程序，不是网页服务。
 
 ## 用自己的视频制作可选帧包
 
@@ -27,7 +27,7 @@ Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼
 .venv\Scripts\python.exe tools/prepare_video2.py --input "你自己的待机视频.mp4"
 ```
 
-默认输出 `data/pet-assets/manifest.json` 和透明 PNG 帧，重启桌宠即可加载。`data/` 已被 Git 忽略。重复生成同一位置需显式加 `--replace`，使用其他位置可设置进程环境变量 `ROBIN_PET_ASSETS`。
+自定义素材默认输出 `data/pet-assets/manifest.json` 和透明 PNG 帧，重启桌宠即可优先加载；没有自定义帧包时加载仓库随附的 `assets/video2_hq/`。`data/` 已被 Git 忽略。重复生成同一位置需显式加 `--replace`，使用其他位置可设置进程环境变量 `ROBIN_PET_ASSETS`。不需要自定义角色时，可跳过这一节。
 
 可选输入：`--wave` 招呼、`--turn` 完整转身再返回、`--walk-in` 转向、`--walk` 向左迈步循环、`--walk-out` 停步转回正面。走路三项需一起提供；缺少的动作不会播放。视频需保持相同画布和角色锚点，衔接姿态由自己的视频决定。待机使用真实帧往返循环，其他动作正向播放。
 
@@ -37,7 +37,7 @@ Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼
 
 - 拖动移动角色，双击打开聊天，右键提供动作和显示设置。
 - 手动动作立即切换，约 0.12 秒整帧过渡，结束后恢复待机；暂停保持当前帧。
-- 仅在自备帧包包含完整走路组时散步，窗口只在实际迈步片段中移动。目前按向左走路处理。
+- 帧包包含完整走路组时可散步，窗口只在实际迈步片段中移动。目前按向左走路处理。
 - 设置可调整大小、置顶、散步及自动朗读，显示适配高 DPI。
 - `动作预览.bat` 用于检查已生成帧包的透明边缘。
 
@@ -49,16 +49,17 @@ Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼
 
 代码、通用工具和纯几何示意图采用 [MIT](LICENSE)。项目的非商业同人定位不改变 MIT 对代码的使用范围。
 
-作者同人角色素材不随代码许可，不可商用、不可再分发，详见 [ASSETS.md](ASSETS.md)。自备素材的权利归属和适用条件由原有规则决定。
+随附的作者同人角色素材不随代码许可，不可商用、不可再分发，详见 [ASSETS.md](ASSETS.md)。自备素材的权利归属和适用条件由原有规则决定。
 
 ## 检查
 
 ```powershell
 .venv\Scripts\python.exe verify.py
+.venv\Scripts\python.exe verify_bundled.py
 .venv\Scripts\python.exe -m pip install -r requirements-tools.txt
 .venv\Scripts\python.exe verify_video.py
 ```
 
 界面检查使用本地模拟服务；视频检查使用临时生成的几何图形测试片，不需要角色素材。临时检查文件保存在被忽略的目录中。
 
-本仓库曾清理历史素材。已经克隆旧历史的使用者应重新克隆，避免将旧素材重新推回。GitHub 缓存及其他人的 fork/clone 不受分支强推控制。
+本仓库曾清理参考素材历史，本次按维护者要求恢复部署必需的人物图片和运行帧包；参考视频和参考图片仍被 Git 忽略。此前下载过不含人物的源码版本，请更新 main 或重新下载 v1.0，并从托盘退出旧实例后重启。

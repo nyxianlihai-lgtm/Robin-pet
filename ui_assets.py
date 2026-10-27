@@ -1,6 +1,7 @@
 """Neutral code-drawn application mark, independent of any game character."""
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
+from config import ROOT
 
 
 def placeholder(size=256):
@@ -21,3 +22,8 @@ def placeholder(size=256):
 
 def app_icon():
     return QIcon(placeholder(128))
+
+
+def character_image():
+    image = QPixmap(str(ROOT / 'assets' / 'robin.png'))
+    return image if not image.isNull() else placeholder()

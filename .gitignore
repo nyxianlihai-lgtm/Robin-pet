@@ -24,6 +24,13 @@ assets/video2_hq/frames/*.webp
 /assets/*
 !/assets/manifest.example.json
 !/assets/demo.svg
+!/assets/robin.png
+!/assets/video2_hq/
+/assets/video2_hq/*
+!/assets/video2_hq/manifest.json
+!/assets/video2_hq/frames/
+/assets/video2_hq/frames/*
+!/assets/video2_hq/frames/*.png
 /user-assets/
 
 # Earlier experimental renderers and character-specific checks remain private.

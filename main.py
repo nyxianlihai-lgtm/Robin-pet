@@ -78,7 +78,7 @@ class Companion(QObject):
         if warning:
             self.report(warning)
         if not self.pet.motion_library.available:
-            self.report("当前显示通用占位图。可用 tools/prepare_video2.py 处理自备视频，生成 data/pet-assets。")
+            self.report("动作帧包未加载，暂用静态人物图。请确认完整下载 assets/video2_hq，或用工具生成 data/pet-assets。")
         app.aboutToQuit.connect(self.shutdown)
 
     def tray_activated(self, reason):
