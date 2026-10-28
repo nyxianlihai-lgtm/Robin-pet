@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import json
 
 import cv2
 import numpy as np
@@ -55,6 +56,7 @@ def main():
         p.update(.13)
         assert p.transition_from is None
         at = p.elapsed
+        assert p.trigger('wave') and p.elapsed == at  # No restart on repeated petting.
         p.update(1, sleeping=True)
         assert p.elapsed == at
         p.update(1, dragging=True)
@@ -87,6 +89,62 @@ def main():
         idle_player.update(3, roaming=True)
         assert idle_player.current == 'idle' and idle_player.queued is None
         assert not idle_player.trigger('walk')
+        at = idle_player.elapsed
+        idle_player.queued = 'walk_in'
+        assert idle_player.trigger('idle')
+        assert idle_player.elapsed == at and idle_player.queued is None
+        # Refined transparent frames must bypass green-screen keying entirely.
+        sequence = directory / 'refined'
+        sequence.mkdir()
+        for i in range(4):
+            rgba = np.zeros((240, 320, 4), np.uint8)
+            rgba[50:190, 100:220] = (40, 180, 80, 255)
+            rgba[100, 160] = (0, 255, 0, 128)
+            assert cv2.imwrite(str(sequence / f'{i:04d}.png'), rgba)
+        refined = directory / 'refined-pack'
+        subprocess.run([sys.executable, str(ROOT / 'tools/prepare_video2.py'),
+                        '--input', str(sequence), '--output', str(refined),
+                        '--idle-loop', 'forward'], check=True, capture_output=True)
+        refined_lib = MotionLibrary(refined)
+        assert refined_lib.available, refined_lib.problem
+        assert len(refined_lib.order) == 4  # Naturally closed idle plays forward.
+        saved = cv2.imread(str(refined_lib.paths[0]), cv2.IMREAD_UNCHANGED)
+        assert np.array_equal(saved, rgba)  # Includes green and partial alpha.
+        # Gait displacement follows source-frame progress, independent of ticks.
+        manifest_path = output / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        manifest['clips']['walk']['stride'] = 80
+        manifest['clips']['walk']['travel_curve'] = [0] * 7 + [i / 6 for i in range(1, 7)]
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        gait_lib = MotionLibrary(output)
+        assert gait_lib.available, gait_lib.problem
+        gait_lib.resize(180)
+        assert abs(gait_lib.walk_stride(180) - 80 * gait_lib.render_scale) < 1e-8
+        a, b = MotionPlayer(gait_lib), MotionPlayer(gait_lib)
+        for player in (a, b):
+            player.current = 'walk'
+        a.update(.5)
+        distance = 0
+        for dt in (.1, .15, .05, .2):
+            b.update(dt)
+            distance += b.travel_cycles
+        assert abs(a.travel_cycles - distance) < 1e-8 and abs(distance - 1) < 1e-8
+        c = MotionPlayer(gait_lib)
+        c.current = 'walk'
+        c.update(.2)
+        assert c.travel_cycles == 0  # An authored stationary phase stays stationary.
+        c.update(1, dragging=True)
+        assert c.travel_cycles == 0
+        c.trigger('idle')
+        assert c.elapsed == gait_lib.closest_idle_time(gait_lib.source_index(.2, 'walk'))
+        c.trigger('walk')
+        c.stop_walk()
+        c.update(gait_lib.duration('walk_in'))
+        assert c.current == 'walk_out' and c.travel_cycles == 0
+        manifest['clips']['walk']['travel_curve'][2] = .9
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        assert not MotionLibrary(output).available
+        print('PASS: refined alpha preserved; forward idle; repeated gesture continuity; frame-based gait curves; tick-independent displacement; early walk stop; invalid curve rejection')
         print('PASS: missing-pack fallback; generic video processing/resampling; alpha; DPI; immediate actions; idle loop; gait-only travel; optional actions; overwrite guard')
 
 

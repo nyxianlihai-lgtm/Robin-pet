@@ -36,8 +36,22 @@ def main():
     assert player.elapsed == 44 / lib.fps
     player.update(.13)
     assert player.transition_from is None
+    at = player.elapsed
+    assert player.trigger('wave') and player.elapsed == at
     player.update(lib.duration('wave') - player.elapsed)
     assert player.current == 'idle'
+    final_wave = lib.clips['wave']['order'][-1]
+    assert player.elapsed == lib.closest_idle_time(final_wave)
+    assert lib.clips['walk']['order'] == list(range(148, 201))
+    # Both pose and motion at the new loop seam improve over the old endpoints.
+    def signature(index):
+        return lib.pose_signatures[index]
+    def distance(a, b):
+        return sum(abs(x - y) for x, y in zip(a, b))
+    def velocity(index):
+        return [y - x for x, y in zip(signature(index), signature(index + 1))]
+    assert distance(signature(148), signature(200)) < distance(signature(132), signature(212))
+    assert distance(velocity(148), velocity(200)) < distance(velocity(132), velocity(212))
     assert player.trigger('walk') and player.current == 'walk_in'
     player.update(lib.duration('walk_in') - player.elapsed)
     assert player.current == 'walk'

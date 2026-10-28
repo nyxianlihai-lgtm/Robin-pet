@@ -2,6 +2,7 @@
 import json
 import random
 import os
+import math
 from pathlib import Path
 
 from PySide6.QtCore import QRectF, Qt
@@ -26,6 +27,7 @@ class MotionLibrary:
         self.interpolation_problem = ""
         self.interpolator = None
         self.cache = []
+        self.pose_signatures = []
         self.clips = {"idle": {}}
         try:
             self.manifest = json.loads((self.directory / "manifest.json").read_text(encoding="utf-8"))
@@ -49,6 +51,17 @@ class MotionLibrary:
                     raise ValueError("视频循环索引不正确。")
                 if clip["next"] not in self.clips:
                     raise ValueError("视频动作接续不存在。")
+                curve = clip.get("travel_curve")
+                if curve is not None:
+                    if (len(curve) != len(clip["order"]) + 1
+                            or any(type(x) not in (int, float) or not math.isfinite(x) for x in curve)
+                            or curve[0] != 0 or curve[-1] != 1
+                            or any(a > b for a, b in zip(curve, curve[1:]))):
+                        raise ValueError("步态位移曲线必须逐帧递增，从 0 到 1。")
+                stride = clip.get("stride")
+                if stride is not None and (type(stride) not in (int, float)
+                                           or not math.isfinite(stride) or stride <= 0):
+                    raise ValueError("步幅必须为正的源像素数。")
             self.paths = []
             for index in range(self.frame_count):
                 path = (self.directory / self.manifest["pattern"].format(index=index)).resolve()
@@ -63,8 +76,10 @@ class MotionLibrary:
         if not self.available:
             return
         rendered = []
+        signatures = []
         scale = min((height - 12) / (self.bounds[3] - self.bounds[1]),
                     (height - 12) / (self.bounds[2] - self.bounds[0]))
+        self.render_scale = scale
         for path in self.paths:
             image = QImage(str(path))
             if image.isNull() or not image.hasAlphaChannel():
@@ -83,7 +98,43 @@ class MotionLibrary:
                                     image.width() * scale, image.height() * scale), image)
             painter.end()
             rendered.append(pixmap)
+            # Compare whole poses in source coordinates, independently of DPI.
+            # Premultiplication prevents invisible RGB from affecting matches.
+            small = image.scaled(16, 20, Qt.AspectRatioMode.IgnoreAspectRatio,
+                                 Qt.TransformationMode.SmoothTransformation)
+            small = small.convertToFormat(QImage.Format.Format_RGBA8888_Premultiplied)
+            signatures.append(bytes(small.constBits()))
         self.cache = rendered
+        self.pose_signatures = signatures
+
+    def closest_idle_time(self, source_index):
+        if not self.pose_signatures:
+            return 0.0
+        pose = self.pose_signatures[source_index]
+        order = self.clips["idle"]["order"]
+        # Repeated source frames are scored once; prefer the forward occurrence.
+        scores = {index: sum(abs(a - b) for a, b in zip(pose, self.pose_signatures[index]))
+                  for index in dict.fromkeys(order)}
+        offset = min(range(len(order)), key=lambda i: scores[order[i]])
+        return offset / self.fps
+
+    def travel_progress(self, elapsed):
+        """Cumulative fraction of one gait, interpolated at source-frame time."""
+        clip = self.clips["walk"]
+        position = min(len(clip["order"]), max(0.0, elapsed * self.fps))
+        curve = clip.get("travel_curve")
+        if curve is None:
+            return position / len(clip["order"])
+        index = min(int(position), len(curve) - 2)
+        fraction = position - index
+        return curve[index] + (curve[index + 1] - curve[index]) * fraction
+
+    def walk_stride(self, height):
+        stride = self.clips.get("walk", {}).get("stride")
+        if stride is not None:
+            return stride * self.render_scale
+        # Backward compatibility for packs without measured ground displacement.
+        return height * .10 * self.duration("walk")
 
     def duration(self, name="idle"):
         return len(self.clips[name]["order"]) / self.fps
@@ -122,20 +173,25 @@ class MotionPlayer:
         self.walk_cycles = 0
         self.stop_requested = False
         self.travel_seconds = 0.0
+        self.travel_cycles = 0.0
         self.transition_from = None
         self.transition_elapsed = 0.0
         self.transition_duration = .12
 
     def _start(self, target):
         previous_frame = self.frame() if self.library.cache else None
+        previous_index = self.library.source_index(self.elapsed, self.current)
         self.current = target
         self.action = None if target == "idle" else target
         # These clips contain a long static lead-in. Enter just before motion.
         entry = self.library.clips[target].get("entry_frame", 0)
         self.elapsed = min(entry / self.library.fps, self.library.duration(target) - 1 / self.library.fps)
+        if target == "idle":
+            self.elapsed = self.library.closest_idle_time(previous_index)
         self.queued = None
         self.stop_requested = False
         self.travel_seconds = 0.0
+        self.travel_cycles = 0.0
         self.walk_cycles = 0
         self.roam_after = self.rng.uniform(22, 38)
         self.transition_from = previous_frame
@@ -145,11 +201,18 @@ class MotionPlayer:
         if not self.library.available:
             return False
         if action == "idle":
+            if self.current == "idle":
+                self.queued = None
+                self.roam_after = self.rng.uniform(22, 38)
+                return True
             self._start("idle")
             return True
         target = {"walk": "walk_in"}.get(action, action)
         if target not in self.library.clips or target not in ("wave", "turn", "walk_in"):
             return False
+        if not force and (self.current == target or
+                          (action == "walk" and self.current in ("walk", "walk_out"))):
+            return True
         # Explicit interactions take effect now, including while another action
         # is playing. Blend whole frames briefly; never stitch or warp limbs.
         self._start(target)
@@ -161,6 +224,7 @@ class MotionPlayer:
     def update(self, dt, sleeping=False, dragging=False, roaming=False):
         self.mode = "drag" if dragging else "sleep" if sleeping else "idle"
         self.travel_seconds = 0.0
+        self.travel_cycles = 0.0
         if not self.library.available or sleeping or dragging:
             return
         self.transition_elapsed += max(0.0, dt)
@@ -175,16 +239,21 @@ class MotionPlayer:
             step = min(remaining, self.library.duration(self.current) - self.elapsed)
             if self.current == "walk":
                 self.travel_seconds += step
+                self.travel_cycles += (self.library.travel_progress(self.elapsed + step)
+                                       - self.library.travel_progress(self.elapsed))
             self.elapsed += step
             remaining -= step
             if self.elapsed + 1e-9 >= self.library.duration(self.current):
                 previous = self.current
+                last_index = self.library.clips[previous]["order"][-1]
+                last_frame = self.library.cache[last_index] if self.library.cache else None
                 following = self.library.clips[previous]["next"]
                 if previous == "idle" and self.queued:
                     following, self.queued = self.queued, None
                 if previous == "walk_in":
                     self.walk_cycles = 0
-                    self.stop_requested = False
+                    if self.stop_requested:
+                        following = "walk_out"
                 if previous == "walk":
                     self.walk_cycles += 1
                     if self.stop_requested or self.walk_cycles >= 2:
@@ -192,6 +261,13 @@ class MotionPlayer:
                 self.current = following
                 self.action = None if following == "idle" else following
                 self.elapsed = 0.0
+                if following == "idle" and previous != "idle":
+                    self.elapsed = self.library.closest_idle_time(last_index)
+                # Natural clip boundaries need the same protection as manual
+                # switches. Never blend a loop onto itself or reset its phase.
+                if following != previous:
+                    self.transition_from = last_frame
+                    self.transition_elapsed = 0.0
                 if following == "idle" and previous != "idle":
                     self.roam_after = self.rng.uniform(22, 38)
 

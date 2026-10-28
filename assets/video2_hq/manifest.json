@@ -861,22 +861,6 @@
     },
     "walk": {
       "order": [
-        132,
-        133,
-        134,
-        135,
-        136,
-        137,
-        138,
-        139,
-        140,
-        141,
-        142,
-        143,
-        144,
-        145,
-        146,
-        147,
         148,
         149,
         150,
@@ -929,21 +913,10 @@
         197,
         198,
         199,
-        200,
-        201,
-        202,
-        203,
-        204,
-        205,
-        206,
-        207,
-        208,
-        209,
-        210,
-        211,
-        212
+        200
       ],
-      "next": "walk"
+      "next": "walk",
+      "loop_note": "Whole-body pose and velocity compared at endpoints; original frames retained."
     },
     "walk_out": {
       "order": [
