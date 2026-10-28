@@ -133,9 +133,10 @@ class Pet(QWidget):
         if not self.isVisible():
             return
         area = self.screen_bounds()
+        speed = self.settings["size"] * .10
         # Leave room to finish a gait cycle before reaching the screen edge.
-        stride = self.motion_library.walk_stride(self.settings["size"]) if "walk" in self.motion_library.clips else 0
-        near_left = self.x() <= area.left() + stride + 2
+        remaining_cycle = self.motion_library.duration("walk") if "walk" in self.motion_library.clips else 0
+        near_left = self.x() <= area.left() + speed * remaining_cycle + 2
         if near_left:
             self.motion.stop_walk()
         self.motion.update(delta, sleeping=self.asleep,
@@ -147,7 +148,7 @@ class Pet(QWidget):
             left = area.left()
             if self.walk_x is None:
                 self.walk_x = float(self.x())
-            self.walk_x = max(left, self.walk_x - stride * self.motion.travel_cycles)
+            self.walk_x = max(left, self.walk_x - speed * self.motion.travel_seconds)
             self.move(round(self.walk_x), self.y())
         self.update()
 
