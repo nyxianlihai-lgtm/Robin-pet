@@ -45,6 +45,12 @@ Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼
 
 配置保存在 `data/settings.json`，API Key 使用 Windows DPAPI 加密，绑定当前用户；个人配置、虚拟环境和检查输出不提交到仓库。语音采用 Windows 本地朗读，不包含角色原声、音色克隆或麦克风输入。程序不连接或修改游戏，不提供游戏插件或私服功能。
 
+## 动画方法来源与后续优化
+
+本项目的桌宠制作参考了 [MerZlin/dsh-pet-indesktop](https://github.com/MerZlin/dsh-pet-indesktop)，尤其是其 [动画素材流水线](https://github.com/MerZlin/dsh-pet-indesktop/blob/34d810b1eadd98d00e7cb9b3b51428a45b5bf03e/docs/ASSET-PIPELINE.md) 中的动作首尾闭环、固定构图、脚底锚点与透明素材处理方法。该文档说明，其素材制作流程承接自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)。感谢两项目作者的开源分享。
+
+Robin-pet 当前使用透明 PNG 帧包；上述项目采用的透明 WebM 流程和步态同步方法将作为后续优化参考。具体来源、当前差异、5 秒视频制作要求及验收计划见 [动画制作与优化方案](docs/ANIMATION_PIPELINE.md)。本段说明技术方法的参考来源；角色素材的来源和使用条件见下文及 [ASSETS.md](ASSETS.md)。
+
 ## 代码与素材
 
 代码、通用工具和纯几何示意图采用 [MIT](LICENSE)。项目的非商业同人定位不改变 MIT 对代码的使用范围。
