@@ -10,6 +10,8 @@
 
 Windows 桌宠程序，支持拖动、置顶、透明视频播放、DeepSeek 兼容接口聊天和 Windows 本地朗读。
 
+[下载 v1.2 与安装说明](https://github.com/nyxianlihai-lgtm/Robin-pet/releases/tag/v1.2)
+
 <img src="assets/video2_hq/frames/frame_0363.png" alt="随附同人角色示意" width="160">
 
 v1.2 随附当前人物图片和完整运行帧包：`assets/robin.png`、`assets/video2_hq/manifest.json` 及 1191 张透明 PNG 帧。完整克隆或下载仓库后即可显示人物和播放动作，无需自己制作视频。参考视频、参考图片和创作过程归档不随仓库分发。
@@ -70,7 +72,7 @@ Robin-pet 当前使用透明 PNG 帧包；上述项目采用的透明 WebM 流�
 
 代码、通用工具和纯几何示意图采用 [MIT](LICENSE)。项目的非商业同人定位不改变 MIT 对代码的使用范围。
 
-随附的作者同人角色素材不随代码许可，不可商用、不可再分发，详见 [ASSETS.md](ASSETS.md)。自备素材的权利归属和适用条件由原有规则决定。
+随附的作者同人角色素材不适用代码 MIT 许可；保留声明时可随本项目整体进行非商业 fork 和分享，禁止单独提取、重新打包或再分发素材，以及将素材商用，详见 [ASSETS.md](ASSETS.md)。自备素材的权利归属和适用条件由原有规则决定。
 
 ## 检查
 
