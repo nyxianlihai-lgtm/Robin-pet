@@ -57,14 +57,14 @@ class Preview(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(background))
             painter.drawRoundedRect(QRectF(x, 92, 450, 390), 18, 18)
-            painter.drawPixmap(x + 65, 105, frame)
+            painter.drawPixmap(round(x + (450 - frame.deviceIndependentSize().width()) / 2), 105, frame)
             painter.setPen(QColor(foreground))
             painter.setFont(QFont("Microsoft YaHei UI", 12))
             painter.drawText(QRectF(x, 444, 450, 25), Qt.AlignmentFlag.AlignCenter, title)
         painter.setPen(QColor("#9586a4"))
         painter.setFont(QFont("Microsoft YaHei UI", 9))
         painter.drawText(QRectF(0, 488, 960, 23), Qt.AlignmentFlag.AlignCenter,
-                         "1 待机   2 抬手招呼   3 转身   4 散步   空格 暂停   → 下一帧   用户自备素材")
+                         "1 待机   2 招呼   4 散步   5 害羞   6 唱歌   7 伸懒腰   空格 暂停   → 下一帧")
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -79,8 +79,8 @@ class Preview(QWidget):
                 self.player.update(1 / self.library.fps)
             else:
                 self.player.elapsed = max(0, self.player.elapsed - 1 / self.library.fps)
-        elif event.key() in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3, Qt.Key.Key_4):
-            action = {Qt.Key.Key_1: "idle", Qt.Key.Key_2: "wave", Qt.Key.Key_3: "turn", Qt.Key.Key_4: "walk"}[event.key()]
+        elif event.key() in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_4, Qt.Key.Key_5, Qt.Key.Key_6, Qt.Key.Key_7):
+            action = {Qt.Key.Key_1: "idle", Qt.Key.Key_2: "wave", Qt.Key.Key_4: "walk", Qt.Key.Key_5: "shy", Qt.Key.Key_6: "sing", Qt.Key.Key_7: "stretch"}[event.key()]
             self.player.trigger(action, force=True)
             self.paused = False
         else:

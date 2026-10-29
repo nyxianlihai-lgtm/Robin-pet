@@ -12,10 +12,23 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from config import ROOT
 from video_motion import MotionLibrary, MotionPlayer
+from tools.prepare_assets import matte
 
 
 def main():
     app = QApplication([])
+    # Both sides of the old 800-pixel limit must retain green iris opacity.
+    # The surrounding green screen remains transparent; no face ellipse fill.
+    for width, height in ((39,20),(32,26),(44,26),(60,30)):
+        raw = np.full((720,1280,3),(137,181,152),np.uint8)
+        raw[250:470,480:800] = (170,200,230)
+        raw[330:330+height,560:560+width] = (100,235,145)
+        keyed = matte(raw,protect_eyes=True)
+        region = keyed[332:328+height,562:558+width]
+        assert np.all(region[:,:,3] == 255), (width,height)
+        assert np.all(region[:,:,:3] == (100,235,145))
+        assert keyed[0,0,3] == 0
+        assert matte(raw)[340,570,3] == 0
     (ROOT / 'qa').mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='generic-video-', dir=ROOT / 'qa') as temporary:
         directory = Path(temporary)
@@ -35,13 +48,13 @@ def main():
         output = directory / 'pack'
         command = [sys.executable, str(ROOT / 'tools/prepare_video2.py'), '--input', str(source),
                    '--output', str(output)]
-        for flag in ('--wave', '--turn', '--walk-in', '--walk', '--walk-out'):
+        for flag in ('--wave', '--turn', '--walk-in', '--walk', '--walk-out', '--shy', '--sing', '--stretch'):
             command += [flag, str(source)]
         subprocess.run(command, check=True, capture_output=True)
         lib = MotionLibrary(output)
         assert lib.available, lib.problem
-        assert lib.frame_count == 72 and lib.fps == 24
-        assert set(lib.clips) == {'idle', 'wave', 'turn', 'walk_in', 'walk', 'walk_out'}
+        assert lib.frame_count == 108 and lib.fps == 24
+        assert set(lib.clips) == {'idle', 'wave', 'turn', 'walk_in', 'walk', 'walk_out', 'shy', 'sing', 'stretch'}
         for path in lib.paths:
             image = QImage(str(path))
             assert image.pixelColor(0, 0).alpha() == 0
@@ -61,7 +74,7 @@ def main():
         assert p.elapsed == at and p.travel_seconds == 0
         p.update(lib.duration('wave') - p.elapsed)
         assert p.current == 'idle'
-        assert p.trigger('turn') and p.current == 'turn'
+        assert not p.trigger('turn') and p.current == 'idle'
         assert p.trigger('idle') and p.current == 'idle' and p.elapsed == 0
         p.update(lib.duration() * 3 + .1)
         assert p.current == 'idle'
@@ -72,6 +85,22 @@ def main():
         assert abs(p.travel_seconds - .1) < 1e-7
         assert p.trigger('idle') and p.travel_seconds == 0
         p.update(.2)
+        assert p.current == 'idle' and p.travel_seconds == 0
+        assert p.trigger('stretch') and p.current == 'stretch'
+        p.update(lib.duration('stretch'))
+        assert p.current == 'idle'
+        assert p.trigger('shy') and p.current == 'shy' and p.label == '害羞回应'
+        assert p.elapsed == 0
+        p.update(.2)
+        paused_at = p.elapsed
+        p.update(1, sleeping=True)
+        assert p.elapsed == paused_at
+        p.update(lib.duration('shy') - p.elapsed)
+        assert p.current == 'idle' and p.travel_seconds == 0
+        p.trigger('shy')
+        assert p.trigger('wave') and p.current == 'wave'
+        assert p.trigger('sing') and p.current == 'sing' and p.label == '唱歌'
+        p.update(lib.duration('sing'))
         assert p.current == 'idle' and p.travel_seconds == 0
         # Explicitly reject replacing user packs unless the user asks for it.
         again = subprocess.run(command, capture_output=True)

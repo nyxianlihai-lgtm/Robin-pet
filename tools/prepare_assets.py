@@ -22,9 +22,13 @@ def matte(frame, protect_eyes=False):
         b, g, r = [channel.astype(np.int16) for channel in cv2.split(frame)]
         skin = ((r - b > 12) & (r - g > 3) & (r > 150) & (b > 100)).astype(np.uint8)
         near_skin = cv2.dilate(skin, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (41, 41)))
+        height, width = frame.shape[:2]
         for k in range(1, n):
             x, y, w, h, area = stats[k]
-            if 4 <= area <= 800 and w <= 50 and h <= 50:
+            # Scale the cap with source resolution. A fixed 800-pixel cutoff
+            # made larger irises disappear whenever their area crossed it.
+            if (4 <= area <= max(800, width * height * .004)
+                    and w <= max(50, width * .08) and h <= max(50, height * .08)):
                 region = labels[y:y+h, x:x+w] == k
                 if (np.percentile(frame[y:y+h, x:x+w, 1][region], 90) > 190
                         and np.mean(near_skin[y:y+h, x:x+w][region]) > .5):
@@ -41,9 +45,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', '--idle', dest='idle', type=Path, required=True,
                         help='Your own idle video; no video is bundled with the repository.')
-    for action in ('wave', 'turn', 'walk-in', 'walk', 'walk-out'):
+    for action in ('wave', 'turn', 'walk-in', 'walk', 'walk-out', 'shy', 'sing', 'stretch'):
         parser.add_argument('--' + action, type=Path)
-    for action in ('idle', 'wave', 'turn', 'walk-in', 'walk', 'walk-out'):
+    for action in ('idle', 'wave', 'turn', 'walk-in', 'walk', 'walk-out', 'shy', 'sing', 'stretch'):
         parser.add_argument('--' + action + '-start', type=float, default=0,
                             help='Trim static lead-in, in seconds.')
     parser.add_argument('--output', type=Path, default=ROOT / 'data' / 'pet-assets')
@@ -56,7 +60,7 @@ def main(argv=None):
     walking = [args.walk_in, args.walk, args.walk_out]
     if any(walking) and not all(walking):
         parser.error('Walking requires --walk-in, --walk and --walk-out together.')
-    inputs = {name: getattr(args, name) for name in ('idle', 'wave', 'turn', 'walk_in', 'walk', 'walk_out')
+    inputs = {name: getattr(args, name) for name in ('idle', 'wave', 'turn', 'walk_in', 'walk', 'walk_out', 'shy', 'sing', 'stretch')
               if getattr(args, name) is not None}
     for name, path in inputs.items():
         if not path.is_file():

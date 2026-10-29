@@ -1,6 +1,6 @@
 """Neutral code-drawn application mark, independent of any game character."""
 from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap, QRegion
 from config import ROOT
 
 
@@ -27,3 +27,16 @@ def app_icon():
 def character_image():
     image = QPixmap(str(ROOT / 'assets' / 'robin.png'))
     return image if not image.isNull() else placeholder()
+
+
+def character_portrait(library=None):
+    """Use the same character pack as the desktop, without loading its cache."""
+    if library is None:
+        from video_motion import MotionLibrary
+        library = MotionLibrary()
+    if library.available:
+        image = QPixmap(str(library.paths[library.order[0]]))
+        if not image.isNull():
+            bounds = QRegion(image.mask()).boundingRect()
+            return image.copy(bounds) if not bounds.isEmpty() else image
+    return character_image()

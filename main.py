@@ -1,13 +1,13 @@
 """Robin desktop companion. Run with .venv/Scripts/pythonw.exe main.py."""
-import hashlib
 import os
 import sys
+import time
 import traceback
 from urllib.parse import urlsplit
 
 from PySide6.QtCore import QObject, QPoint, QTimer
 from PySide6.QtGui import QFont, QFontDatabase, QIcon
-from PySide6.QtNetwork import QLocalServer, QLocalSocket
+from PySide6.QtNetwork import QLocalServer
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
 
 from config import APP_NAME, APP_TITLE, APP_VERSION, Config, ROOT
@@ -15,7 +15,8 @@ from panel import Panel
 from pet import Pet
 from security import protect, unprotect
 from services import ChatClient, Speaker, endpoint_url
-from ui_assets import app_icon
+from ui_assets import app_icon, character_portrait
+from instance import activate_existing, attach_activation, server_name
 
 
 class Companion(QObject):
@@ -34,7 +35,7 @@ class Companion(QObject):
         except (OSError, ValueError):
             warning = "API Key 无法解密，请在设置中重新填写。"
         self.pet = Pet(self.config.values)
-        self.panel = Panel(self.config.values, self.key)
+        self.panel = Panel(self.config.values, self.key, character_portrait(self.pet.motion_library))
         self.chat = ChatClient(self)
         self.speaker = Speaker(self)
         self.tray = None
@@ -78,7 +79,7 @@ class Companion(QObject):
         if warning:
             self.report(warning)
         if not self.pet.motion_library.available:
-            self.report("动作帧包未加载，暂用静态人物图。请确认完整下载 assets/video2_hq，或用工具生成 data/pet-assets。")
+            self.report("动作加载失败：" + self.pet.motion_library.problem + "；可右键重新加载动作。")
         app.aboutToQuit.connect(self.shutdown)
 
     def tray_activated(self, reason):
@@ -222,14 +223,13 @@ def main():
     app.setFont(QFont("Microsoft YaHei UI", 10))
     app.setWindowIcon(app_icon())
     app.setQuitOnLastWindowClosed(False)
-    name = "robin-pet-" + hashlib.sha256(str(ROOT).lower().encode()).hexdigest()[:16]
-    socket = QLocalSocket()
-    socket.connectToServer(name)
-    if socket.waitForConnected(400):
-        socket.write(b"show")
-        socket.waitForBytesWritten(400)
-        socket.disconnectFromServer()
-        return 0
+    name = server_name(ROOT)
+    try:
+        if activate_existing(name):
+            return 0
+    except RuntimeError as error:
+        QMessageBox.warning(None, APP_TITLE, str(error))
+        return 1
     server = QLocalServer()
     if not server.listen(name):
         QMessageBox.warning(None, APP_TITLE, "另一个桌宠实例正在启动，请稍后再试。")
@@ -237,14 +237,15 @@ def main():
     companion = Companion(app)
 
     def activate():
-        connection = server.nextPendingConnection()
-        if connection:
-            connection.disconnectFromServer()
-            connection.deleteLater()
+        companion.pet.clear_drag()
+        companion.pet.asleep = False
+        if not companion.pet.timer.isActive():
+            companion.pet.last_frame = time.monotonic()
+            companion.pet.timer.start(16)
         companion.show_panel()
         companion.pet.reveal()
 
-    server.newConnection.connect(activate)
+    attach_activation(server, activate)
 
     def exception_hook(kind, value, tb):
         (ROOT / "data").mkdir(exist_ok=True)

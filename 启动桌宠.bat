@@ -11,4 +11,4 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-start "" "%~dp0.venv\Scripts\pythonw.exe" "%~dp0main.py"
+start "" /D "%~dp0" "%~dp0.venv\Scripts\pythonw.exe" "%~dp0main.py"

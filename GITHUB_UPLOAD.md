@@ -2,7 +2,7 @@
 
 仓库：https://github.com/nyxianlihai-lgtm/Robin-pet
 
-当前仓库包含通用代码、MIT 许可、素材使用说明，以及部署必需的人物图片和 `assets/video2_hq/` 透明 PNG 帧包。参考图片、原始视频、过时帧包和创作过程归档仍保留本地，不上传；具体边界见 ASSETS.md。
+当前版本为 Robin-pet v1.2，随附 1191 张实际使用的透明 PNG 帧。仓库包含通用代码、MIT 许可、素材使用说明，以及部署必需的人物图片和 `assets/video2_hq/` 透明 PNG 帧包。参考图片、原始视频、过时帧包和创作过程归档仍保留本地，不上传；具体边界见 ASSETS.md。
 
 ## 后续更新
 

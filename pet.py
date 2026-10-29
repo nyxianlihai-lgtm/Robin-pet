@@ -1,5 +1,7 @@
 """Transparent pet window with aligned character animation and local interaction."""
 import math
+import json
+import os
 import random
 import time
 
@@ -42,6 +44,8 @@ class Pet(QWidget):
         self.last_frame = time.monotonic()
         self.walk_x = None
         self.last_greeting = 0
+        self.last_animation_status = 0
+        self.last_animation_action = "startup"
         self.resize_pet(settings["size"])
         self.apply_topmost(settings["topmost"])
         self.timer = QTimer(self)
@@ -81,9 +85,54 @@ class Pet(QWidget):
         self.settings["size"] = height
         self.sprite = self.source.scaledToHeight(height, Qt.TransformationMode.SmoothTransformation)
         self.motion_library.resize(height, self.devicePixelRatioF())
-        self.setFixedSize(max(280, self.sprite.width() + 32), height + 100)
+        self.record_animation_status()
+        self.setFixedSize(max(280, self.sprite.width() + 32, self.motion_library.render_width), height + 100)
         self.move(self.x(), previous_bottom - self.height())
         self.clamp()
+
+    def record_animation_status(self):
+        library = self.motion_library
+        status = {"available": library.available, "problem": library.problem,
+                  "directory": str(library.directory), "frames": getattr(library, "frame_count", 0),
+                  "cached_frames": getattr(library.cache, "resident_count", len(library.cache)), "dpi": self.devicePixelRatioF(),
+                  "pid": os.getpid(), "updated_at": time.time(),
+                  "visible": self.isVisible(), "paused": self.asleep,
+                  "dragging": self.drag_offset is not None and self.dragged,
+                  "timer_active": self.timer.isActive() if hasattr(self, "timer") else False,
+                  "clip": self.motion.current, "elapsed": self.motion.elapsed,
+                  "idle_seconds": self.motion.idle_seconds,
+                  "last_action": self.last_animation_action}
+        try:
+            # Offscreen tests must never overwrite the user's live diagnostics.
+            directory = ROOT / ("qa" if os.environ.get("QT_QPA_PLATFORM") == "offscreen" else "data")
+            directory.mkdir(exist_ok=True)
+            (directory / "animation-status.json").write_text(
+                json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
+        except OSError:
+            pass
+
+    def clear_drag(self):
+        self.drag_offset = None
+        self.dragged = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def reload_motion(self):
+        library = MotionLibrary()
+        if library.available:
+            library.resize(self.settings["size"], self.devicePixelRatioF())
+        if not library.available:
+            self.say("动作素材加载失败：" + library.problem, 8)
+            return False
+        self.motion_library.close()
+        self.motion_library = library
+        self.motion = MotionPlayer(library)
+        self.clear_drag()
+        self.asleep = False
+        self.setFixedSize(max(280, self.sprite.width() + 32, library.render_width), self.settings["size"] + 100)
+        self.clamp()
+        self.record_animation_status()
+        self.say("动作已重新加载。")
+        return True
 
     def event(self, event):
         if event.type() == QEvent.Type.DevicePixelRatioChange and hasattr(self, "settings"):
@@ -104,6 +153,10 @@ class Pet(QWidget):
         self.update()
 
     def interact(self, action="pat"):
+        self.last_animation_action = "interact:" + action
+        self.clear_drag()
+        if not self.motion_library.available and not self.reload_motion():
+            return
         self.asleep = False
         self.motion.update(0, sleeping=False, dragging=False)
         self.motion.trigger("wave")
@@ -111,11 +164,16 @@ class Pet(QWidget):
         self.say(random.choice(("收到一份摸摸，谢谢你 ♡", "今天也要照顾好自己呀。", "我在这里，随时陪你聊聊。", "把好心情分给你一点点 ♪")))
 
     def preview_action(self, action):
+        self.last_animation_action = "preview:" + action
+        self.clear_drag()
+        if not self.motion_library.available and not self.reload_motion():
+            return
         self.asleep = False
         self.motion.update(0, sleeping=False, dragging=False)
         if self.motion.trigger(action, force=True):
-            self.say({"wave": "向你打个招呼 ♪", "turn": "转过来看看。", "walk": "出去散散步。",
-                      "idle": "恢复待机，陪着你。"}.get(action, "正在播放动作。"))
+            self.say({"wave": "向你打个招呼 ♪", "walk": "出去散散步。",
+                      "idle": "恢复待机，陪着你。", "shy": "被你发现啦 ♡", "sing": "为你唱一小段 ♪",
+                      "stretch": "唔……伸个懒腰，继续陪你。"}.get(action, "正在播放动作。"))
         else:
             self.say("还没有这个动作的视频素材。")
 
@@ -123,6 +181,7 @@ class Pet(QWidget):
         self.motion.thinking = thinking
 
     def toggle_sleep(self):
+        self.motion.idle_seconds = 0.0
         self.asleep = not self.asleep
         self.say("待机视频已暂停，再点一次继续。" if self.asleep else "继续播放啦。")
 
@@ -130,8 +189,16 @@ class Pet(QWidget):
         now = time.monotonic()
         delta = min(0.1, now - self.last_frame)
         self.last_frame = now
+        if now - self.last_animation_status >= 2:
+            self.last_animation_status = now
+            self.record_animation_status()
         if not self.isVisible():
+            self.motion.idle_seconds = 0.0
             return
+        # A missed release (for example after focus changes during a drag)
+        # must not leave every animation paused permanently.
+        if self.drag_offset is not None and not QApplication.mouseButtons() & Qt.MouseButton.LeftButton:
+            self.clear_drag()
         area = self.screen_bounds()
         speed = self.settings["size"] * .10
         # Leave room to finish a gait cycle before reaching the screen edge.
@@ -141,7 +208,7 @@ class Pet(QWidget):
             self.motion.stop_walk()
         self.motion.update(delta, sleeping=self.asleep,
                            dragging=self.drag_offset is not None and self.dragged,
-                           roaming=self.settings["wander"] and not near_left)
+                           roaming=self.settings["wander"] and not near_left, automatic=True)
         if not self.asleep:
             self.phase += delta
         if self.motion.travel_seconds > 0 and not self.asleep and self.drag_offset is None:
@@ -187,6 +254,7 @@ class Pet(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
+            self.motion.idle_seconds = 0.0
             self.press_at = event.globalPosition().toPoint()
             self.drag_offset = self.press_at - self.pos()
             self.dragged = False
@@ -227,10 +295,17 @@ class Pet(QWidget):
         menu.addAction("和 Robin 聊聊", self.open_panel.emit)
         menu.addAction("摸摸头 ♡", lambda checked=False: self.interact())
         menu.addAction("继续播放" if self.asleep else "暂停待机", self.toggle_sleep)
+        menu.addAction("重新加载动作", self.reload_motion)
         preview = menu.addMenu("动作预览")
         for label, action in (("视频待机", "idle"), ("抬手招呼", "wave"),
-                              ("转身再回来", "turn"), ("向左散步", "walk")):
+                              ("向左散步", "walk")):
             preview.addAction(label, lambda checked=False, name=action: self.preview_action(name))
+        if "shy" in self.motion_library.clips:
+            preview.addAction("害羞回应 ♡", lambda checked=False: self.preview_action("shy"))
+        if "sing" in self.motion_library.clips:
+            preview.addAction("唱歌 ♪", lambda checked=False: self.preview_action("sing"))
+        if "stretch" in self.motion_library.clips:
+            preview.addAction("困困伸懒腰", lambda checked=False: self.preview_action("stretch"))
         menu.addSeparator()
         walk = menu.addAction("偶尔向左散步")
         walk.setCheckable(True)

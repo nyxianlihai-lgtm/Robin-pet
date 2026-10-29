@@ -47,3 +47,14 @@ assets/video2_hq/frames/*.webp
 /tools/prepare_idle_video.py
 /tools/render_video2_preview.py
 /tools/verify_video2_matte.py
+
+# Local QA requires private source videos/backups and is not a release check.
+/verify_edges.py
+/verify_full_walk.py
+/verify_interaction_timing.py
+/verify_shy.py
+/verify_sing.py
+/verify_startup_cache.py
+/verify_stretch.py
+/verify_walk_feet.py
+/verify_window_motion.py

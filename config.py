@@ -5,7 +5,7 @@ import os
 
 ROOT = Path(__file__).resolve().parent
 APP_NAME = "Robin-pet"
-APP_VERSION = "1.0"
+APP_VERSION = "1.2"
 APP_TITLE = f"{APP_NAME} v{APP_VERSION}"
 DEFAULTS = {
     "base_url": "https://api.deepseek.com", "model": "deepseek-flash",
